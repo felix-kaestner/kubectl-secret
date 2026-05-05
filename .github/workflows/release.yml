@@ -17,9 +17,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@v6
         with:
           go-version-file: 'go.mod'
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v7
         with:
@@ -27,3 +33,35 @@ jobs:
           version: latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Update Krew manifest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release download "$TAG" --pattern checksums.txt --output checksums.txt
+
+          update_platform() {
+            local os=$1 arch=$2
+            local archive="kubectl-secret_${os}_${arch}.tar.gz"
+            local sha
+            sha=$(grep "$archive" checksums.txt | awk '{print $1}')
+            local uri="https://github.com/felix-kaestner/kubectl-secret/releases/download/${TAG}/${archive}"
+            yq -i "
+              .spec.version = \"${TAG}\" |
+              (.spec.platforms[] | select(.selector.matchLabels.os == \"${os}\" and .selector.matchLabels.arch == \"${arch}\") | .uri) = \"${uri}\" |
+              (.spec.platforms[] | select(.selector.matchLabels.os == \"${os}\" and .selector.matchLabels.arch == \"${arch}\") | .sha256) = \"${sha}\"
+            " plugins/secret.yaml
+          }
+
+          update_platform linux amd64
+          update_platform linux arm64
+          update_platform darwin amd64
+          update_platform darwin arm64
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout main
+          git add plugins/secret.yaml
+          git commit -m "Update Krew manifest for ${TAG}"
+          git push origin main

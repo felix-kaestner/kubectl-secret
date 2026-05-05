@@ -6,6 +6,15 @@ A kubectl plugin for working with Kubernetes secrets more easily.
 
 ## Installation
 
+### Via Krew
+
+```bash
+kubectl krew index add kubectl-secret https://github.com/felix-kaestner/kubectl-secret.git
+kubectl krew install kubectl-secret/secret
+```
+
+### Via go install
+
 ```bash
 go install github.com/felix-kaestner/kubectl-secret@latest
 ```
