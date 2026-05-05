@@ -62,7 +62,7 @@ func (o *ViewOptions) Run(ctx context.Context) error {
 // printDecodedSecret prints a secret in the same style as kubectl describe secret.
 // Adapted from https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/kubectl/pkg/describe/describe.go
 // The only difference: all data values are shown decoded instead of as byte counts.
-func printDecodedSecret(secret *corev1.Secret, out io.Writer) error { //nolint:errcheck
+func printDecodedSecret(secret *corev1.Secret, out io.Writer) error {
 	w := tabwriter.NewWriter(out, 0, 8, 2, ' ', 0)
 
 	fmt.Fprintf(w, "Name:\t%s\n", secret.Name)

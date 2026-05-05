@@ -11,3 +11,10 @@ formatters:
     goimports:
       local-prefixes:
         - github.com/felix-kaestner/kubectl-secret
+
+linters:
+  exclusions:
+    rules:
+      - linters:
+          - errcheck
+        source: "fmt\\.Fprintf"
