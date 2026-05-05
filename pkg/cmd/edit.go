@@ -17,7 +17,14 @@ import (
 
 type EditOptions struct {
 	BaseOptions
+
+	// EditFn opens the secret YAML in an editor and returns the modified content.
+	// Defaults to [openInEditor]; can be overridden in tests.
 	EditFn func([]byte) ([]byte, error)
+
+	// ShowManagedFields controls whether managedFields are included in the YAML
+	// opened in the editor. Mirrors kubectl's --show-managed-fields flag.
+	ShowManagedFields bool
 }
 
 func NewEditOptions(configFlags *genericclioptions.ConfigFlags, streams genericiooptions.IOStreams) *EditOptions {
@@ -33,7 +40,7 @@ func NewEditOptions(configFlags *genericclioptions.ConfigFlags, streams generici
 func NewCmdEdit(configFlags *genericclioptions.ConfigFlags, streams genericiooptions.IOStreams) *cobra.Command {
 	o := NewEditOptions(configFlags, streams)
 
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:          "edit NAME",
 		Short:        "Edit a secret with base64-decoded values in your $EDITOR",
 		SilenceUsage: true,
@@ -47,6 +54,10 @@ func NewCmdEdit(configFlags *genericclioptions.ConfigFlags, streams genericioopt
 			return o.Run(cmd.Context())
 		},
 	}
+
+	cmd.Flags().BoolVar(&o.ShowManagedFields, "show-managed-fields", false, "If true, show managedFields in the secret YAML opened in the editor.")
+
+	return cmd
 }
 
 func (o *EditOptions) Run(ctx context.Context) error {
@@ -55,7 +66,7 @@ func (o *EditOptions) Run(ctx context.Context) error {
 		return fmt.Errorf("getting secret %q: %w", o.Name, err)
 	}
 
-	original, err := marshalDecodedSecret(secret)
+	original, err := marshalDecodedSecret(secret, o.ShowManagedFields)
 	if err != nil {
 		return err
 	}
@@ -130,4 +141,39 @@ func openInEditor(content []byte) ([]byte, error) {
 	}
 
 	return os.ReadFile(f.Name())
+}
+
+// marshalDecodedSecret uses an anonymous struct with map[string]string for Data
+// instead of corev1.Secret directly, bypassing automatic base64 encoding of []byte values.
+func marshalDecodedSecret(secret *corev1.Secret, showManagedFields bool) (string, error) {
+	decoded := make(map[string]string, len(secret.Data))
+	for k, v := range secret.Data {
+		decoded[k] = string(v)
+	}
+
+	metadata := secret.ObjectMeta
+	if !showManagedFields {
+		metadata.ManagedFields = nil
+	}
+
+	out := struct {
+		metav1.TypeMeta `json:",inline"`
+		Metadata        metav1.ObjectMeta `json:"metadata,omitempty"`
+		Immutable       *bool             `json:"immutable,omitempty"`
+		Type            corev1.SecretType `json:"type,omitempty"`
+		Data            map[string]string `json:"data,omitempty"`
+	}{
+		TypeMeta:  metav1.TypeMeta{APIVersion: "v1", Kind: "Secret"},
+		Metadata:  metadata,
+		Immutable: secret.Immutable,
+		Type:      secret.Type,
+		Data:      decoded,
+	}
+
+	b, err := yaml.Marshal(out)
+	if err != nil {
+		return "", fmt.Errorf("marshalling secret: %w", err)
+	}
+
+	return string(b), nil
 }

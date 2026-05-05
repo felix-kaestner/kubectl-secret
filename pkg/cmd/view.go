@@ -13,7 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/genericiooptions"
-	"sigs.k8s.io/yaml"
 )
 
 type ViewOptions struct {
@@ -100,35 +99,4 @@ func printDecodedSecret(secret *corev1.Secret, out io.Writer) error { //nolint:e
 	}
 
 	return w.Flush()
-}
-
-// marshalDecodedSecret uses an anonymous struct with map[string]string for Data
-// instead of corev1.Secret directly, bypassing encoding/json's automatic
-// base64 encoding of []byte values.
-func marshalDecodedSecret(secret *corev1.Secret) (string, error) {
-	decoded := make(map[string]string, len(secret.Data))
-	for k, v := range secret.Data {
-		decoded[k] = string(v)
-	}
-
-	out := struct {
-		metav1.TypeMeta `json:",inline"`
-		Metadata        metav1.ObjectMeta `json:"metadata,omitzero"`
-		Immutable       *bool             `json:"immutable,omitempty"`
-		Type            corev1.SecretType `json:"type,omitempty"`
-		Data            map[string]string `json:"data,omitempty"`
-	}{
-		TypeMeta:  metav1.TypeMeta{APIVersion: "v1", Kind: "Secret"},
-		Metadata:  secret.ObjectMeta,
-		Immutable: secret.Immutable,
-		Type:      secret.Type,
-		Data:      decoded,
-	}
-
-	b, err := yaml.Marshal(out)
-	if err != nil {
-		return "", fmt.Errorf("marshalling secret: %w", err)
-	}
-
-	return string(b), nil
 }
