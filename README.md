@@ -2,6 +2,8 @@
 
 A kubectl plugin for working with Kubernetes secrets more easily.
 
+![Demo](examples/demo.gif)
+
 ## Installation
 
 ```bash
