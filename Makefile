@@ -35,6 +35,10 @@ vet: ## Run go vet against code.
 test: fmt vet ## Run tests.
 	go test ./... -coverprofile cover.out
 
+.PHONY: coverage
+coverage: test ## Run tests and generate coverage report.
+	go tool cover -html=cover.out -o cover.html
+
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint linter.
 	"$(GOLANGCI_LINT)" run
@@ -46,6 +50,20 @@ lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes.
 .PHONY: lint-config
 lint-config: golangci-lint ## Verify golangci-lint linter configuration.
 	"$(GOLANGCI_LINT)" config verify
+
+.PHONY: add-license
+add-license: addlicense ## Add license headers to all go files.
+	$(ADDLICENSE) -f hack/license-header.txt .
+
+.PHONY: check-license
+check-license: addlicense ## Check that every file has a license header present.
+	$(ADDLICENSE) -check .
+
+.PHONY: clean
+clean: ## Remove all generated files (bin/, coverage files)
+	rm -rf bin/
+	rm -f cover.out
+	rm -f cover.html
 
 ##@ Build
 
@@ -71,14 +89,16 @@ $(LOCALBIN):
 	mkdir -p "$(LOCALBIN)"
 
 ## Tool Binaries
-GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
-GOIMPORTS     = $(LOCALBIN)/goimports
-GOFUMPT       = $(LOCALBIN)/gofumpt
+GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
+GOIMPORTS     ?= $(LOCALBIN)/goimports
+GOFUMPT       ?= $(LOCALBIN)/gofumpt
+ADDLICENSE    ?= $(LOCALBIN)/addlicense
 
 ## Tool Versions
 GOLANGCI_LINT_VERSION ?= v2.11.4
-GOIMPORTS_VERSION     ?= latest
-GOFUMPT_VERSION       ?= latest
+GOIMPORTS_VERSION     ?= v0.44.0
+GOFUMPT_VERSION       ?= v0.10.0
+ADDLICENSE_VERSION    ?= v1.2.0
 
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
@@ -94,6 +114,11 @@ $(GOIMPORTS): $(LOCALBIN)
 gofumpt: $(GOFUMPT) ## Download gofumpt locally if necessary.
 $(GOFUMPT): $(LOCALBIN)
 	$(call go-install-tool,$(GOFUMPT),mvdan.cc/gofumpt,$(GOFUMPT_VERSION))
+
+.PHONY: addlicense
+addlicense: $(ADDLICENSE) ## Download addlicense locally if necessary.
+$(ADDLICENSE): $(LOCALBIN)
+	$(call go-install-tool,$(ADDLICENSE),github.com/google/addlicense,$(ADDLICENSE_VERSION))
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Felix Kästner
+// SPDX-License-Identifier: Apache-2.0
+
 package main
 
 import (
