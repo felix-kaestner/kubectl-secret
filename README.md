@@ -16,6 +16,8 @@ This installs the binary to `$GOBIN` where kubectl discovers plugins.
 <summary>Build from source</summary>
 
 ```bash
+git clone https://github.com/felix-kaestner/kubectl-secret.git
+cd kubectl-secret
 make install
 ```
 
