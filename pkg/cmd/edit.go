@@ -148,6 +148,8 @@ func openInEditor(content []byte) ([]byte, error) {
 
 // marshalDecodedSecret uses an anonymous struct with map[string]string for Data
 // instead of corev1.Secret directly, bypassing automatic base64 encoding of []byte values.
+// The header comment matches the format used by kubectl edit.
+// Adapted from https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/kubectl/pkg/cmd/util/editor/editoptions.go
 func marshalDecodedSecret(secret *corev1.Secret, showManagedFields bool) (string, error) {
 	decoded := make(map[string]string, len(secret.Data))
 	for k, v := range secret.Data {
@@ -178,5 +180,10 @@ func marshalDecodedSecret(secret *corev1.Secret, showManagedFields bool) (string
 		return "", fmt.Errorf("marshalling secret: %w", err)
 	}
 
-	return string(b), nil
+	const header = "# Please edit the object below. Lines beginning with a '#' will be ignored,\n" +
+		"# and an empty file will abort the edit. If an error occurs while saving this file will be\n" +
+		"# reopened with the relevant failures.\n" +
+		"#\n"
+
+	return header + string(b), nil
 }
