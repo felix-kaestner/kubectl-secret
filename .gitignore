@@ -19,6 +19,7 @@ profile.cov
 
 # Build output
 bin/
+dist/
 
 # Go workspace file
 go.work
