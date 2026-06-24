@@ -6,6 +6,7 @@ endif
 
 GOOS    := $(shell go env GOOS)
 GOARCH  := $(shell go env GOARCH)
+VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
@@ -69,7 +70,7 @@ clean: ## Remove all generated files (bin/, coverage files)
 
 .PHONY: build
 build: fmt vet ## Build kubectl-secret binary.
-	go build -o bin/kubectl-secret main.go
+	go build -ldflags "-X main.version=$(VERSION)" -o bin/kubectl-secret main.go
 
 .PHONY: run
 run: fmt vet ## Run kubectl-secret from source.

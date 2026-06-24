@@ -9,7 +9,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericiooptions"
 )
 
-func NewCmdSecret(streams genericiooptions.IOStreams) *cobra.Command {
+func NewCmdSecret(streams genericiooptions.IOStreams, version string) *cobra.Command {
 	configFlags := genericclioptions.NewConfigFlags(true)
 
 	cmd := &cobra.Command{
@@ -22,6 +22,7 @@ func NewCmdSecret(streams genericiooptions.IOStreams) *cobra.Command {
 
 	cmd.AddCommand(NewCmdView(configFlags, streams))
 	cmd.AddCommand(NewCmdEdit(configFlags, streams))
+	cmd.AddCommand(NewCmdVersion(streams, version))
 
 	return cmd
 }
