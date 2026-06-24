@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericiooptions"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"github.com/felix-kaestner/kubectl-secret/pkg/cmd"
 )
